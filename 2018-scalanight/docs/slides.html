@@ -168,39 +168,172 @@ val els2 = `everywhere`(shift5)(els1)
 
 ---
 
-## Implicit resolution
+## 준비물
 
-- Lexical scope
-- Companion object
-- Chaining
-
----
-
-## Path-dependent type
-
-  - `shapeless.{Nat, HList, Coproduct, ...}`
+- Implicit parameter resolution
+- HList
+  - (+ Coproduct)
+- Path-dependent type
+  - `Aux` 패턴
+- Isomorphism
+- 지금 다 몰라도 괜찮아요
 
 ---
 
-## Value-dependent type
+## Implicit Parameter Resolution
 
-  - `shapeless.Witness`
-  - [SIP-23](https://docs.scala-lang.org/sips/42.type.html)
-     - `-Yliteral-types` in Scala 2.13
+### Lexical scope
+
+지역변수 선언, import, 바깥 스코프, 상속, 패키지 오브젝트 등
+
+
+### Implicit scope
+
+동반객체, 패키지 오브젝트, 타입 생성자, 파라미터, 수퍼타입 등
+
+
+<br><br>
+
+참조: http://eed3si9n.com/revisiting-implicits-without-import-tax
+
+---
+
+## HList
+
+#### Homogenious List
+
+```
+sealed trait List[A]
+case object Nil extends List[Nothing]
+case class Cons[A](head: A, tail: List[A]) extends List[A]
+
+import scala._
+val xs: List[Int] = 
+  `1` :: `2` :: `3` :: Nil
+```
+
+--
+
+#### Heterogenious List
+
+```
+sealed trait HList
+case object HNil extends HList
+case class HCons[H, T <: HList](head: H, tail: T) extends HList
+
+import shapeless._
+val hxs: Int :: Boolean :: Char :: HNil =
+  `1` :: `true` :: `'a'` :: HNil
+```
+
+---
+
+## Path-dependent Type
+
+```
+trait Fun[In] { 
+  type Out
+  def apply(x: In): Out
+}
+
+def func[In](f: Func[In], x: Int): x.Out = f(x)
+```
+
+---
+
+## Composing Path-dependent Type
+
+```
+def composeWrong[A](
+                     `fa`: Fun[A], 
+                     fb: Fun[fa.Out]
+                   ): Fun[A] { type Out = fb.Out } = ???
+
+// Error: illegal dependent method type: parameter may 
+// only be referenced in a subsequent parameter section
+```
+
+--
+
+```
+def compose[A](fa: Fun[A])
+              (fb: Fun[fa.Out]): Fun[A] { type Out = fb.Out } =
+  new Fun[A] {
+    type Out = fb.Out
+    def apply(x: A): fb.Out = fb(fa(x))
+  }
+```
+
+---
+
+## Implicit Parameter의 경우
+
+```
+def composeImplicit1[A](implicit fa: Fun[A])
+                       (fb: Fun[fa.Out]) = ???
+
+// Error: ';' or newline expected
+
+def composeImplicit2[A](implicit fa: Fun[A])
+                       (implicit fb: Fun[fa.Out]) = ???
+
+// Error: ';' or newline expected
+```
+
+
+
+---
+
+## Aux Pattern
+
+```
+// trait Fun { ... }
+object Fun {
+  type Aux[A, `B`] = Foo[A] { type Out = `B` }
+}
+```
+
+--
+
+```
+def composeImplicit[A, `B`, C](
+  implicit
+  fa: Fun.Aux[A, `B`],
+  fb: Fun.Aux[`B`, C]
+): Fun.Aux[A, C] = new Fun[A] { 
+  type Out = C
+  def apply(x: A): C = fb(fa(x))
+}
+```
+
+<br>
+
+참조: http://gigiigig.github.io/posts/2015/09/13/aux-pattern.html
 
 ---
 
 ## Isomorphism
 
-- `shapeless.Generic`
-  - Product
-  - Coproduct
+> 수학에서, 동형 사상(同型寫像, 문화어: 동형넘기기, 영어: isomorphism)은 서로 구조가 같은 두 대상 사이에, 모든 구조를 보존하는 사상이다. 두 대상 사이에 동형 사상이 존재하는 경우 서로 동형(同型, 영어: isomorphic)이라고 하며, 서로 동형인 두 대상은 구조가 같아 구조로서 구별할 수 없다.
+> https://ko.wikipedia.org/wiki/동형_사상
 
----
+<br>
 
-## `Aux` pattern
+```
+case class ScalaNight(year: Int, location: Address, isFun: Boolean)
+type ScalaNightTuple = (Int, Address, Boolean)
+type ScalaNightHList = Int :: Address :: Boolean :: HNil
+```
 
-- http://gigiigig.github.io/posts/2015/09/13/aux-pattern.html
+```
+sealed trait Bool
+case object True extends Bool
+case object False extends Bool
+
+type BoolEither = Either[True, False]
+type BoolCoproduct = True :+: False :+: CNil
+```
+
 
 ---
 
@@ -251,6 +384,8 @@ class: center, middle
 
 ---
 
+## (주)두물머리
+
 ## 스칼라 개발자를 모십니다
 
 --
@@ -291,8 +426,7 @@ class: center, middle
       highlightLanguage: 'scala',
       highlightLines: true,
       highlightSpans: true,
-      footnotes: true,
-      countIncrementalSlides: false,
+      footnotes: true
     });
   </script>
 </body>
