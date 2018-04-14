@@ -69,6 +69,33 @@ class: center, middle
 
 ---
 
+# Algebraic Data Type
+
+#### Product Type
+
+`N(Prod(A, B)) = N(A) × N(B)`
+
+```
+case class CaseClassIsProduct(a: String, b: Int)
+
+type TupleIsAlsoProduct = (a: String, b: Int)
+```
+
+#### Sum Type
+
+`N(Sum(A, B)) = N(A) + N(B)`
+
+```
+// type EnumLike = EnumLikeA | EnumLikeB
+sealed trait EnumLike
+case class EnumLikeA(a1: String, a2: Boolean) extends EnumLike
+case object EnumLikeB extends EnumLike 
+
+type EitherIsAlsoSumType = Either[EnumLikeA, EnumLikeB]
+```
+
+---
+
 ## 실제 사례
 
 날짜들만 일주일씩 미룰 수 없을까?
